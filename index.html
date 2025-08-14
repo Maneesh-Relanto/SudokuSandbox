@@ -41,6 +41,15 @@
             <button id="solve-btn" class="control-btn">Solve</button>
         </div>
 
+        <div class="difficulty-selector">
+            <label for="difficulty-select">Difficulty:</label>
+            <select id="difficulty-select" class="difficulty-dropdown">
+                <option value="easy">Easy (8-12 clues)</option>
+                <option value="medium">Medium (6-8 clues)</option>
+                <option value="hard">Hard (4-6 clues)</option>
+            </select>
+        </div>
+
         <div class="number-pad">
             <button class="number-btn" data-number="1">1</button>
             <button class="number-btn" data-number="2">2</button>
@@ -48,17 +57,6 @@
             <button class="number-btn" data-number="4">4</button>
             <button class="number-btn" data-number="5">5</button>
             <button class="number-btn erase" data-number="0">⌫</button>
-        </div>
-
-        <div class="instructions">
-            <h3>How to Play:</h3>
-            <ul>
-                <li><strong>Goal:</strong> Fill the 5×5 grid with numbers 1-5</li>
-                <li><strong>Rules:</strong> Each row, column, and colored region must contain all numbers 1-5</li>
-                <li><strong>Controls:</strong> Click a cell, then click a number or use keyboard (1-5)</li>
-                <li><strong>Hint:</strong> Click "Hint" for a suggestion</li>
-                <li><strong>Check:</strong> Verify your current progress</li>
-            </ul>
         </div>
 
         <!-- Instructions Modal -->
@@ -97,6 +95,7 @@
                         <h3>🛠️ Game Controls</h3>
                         <ul>
                             <li><strong>New Game:</strong> Start a fresh puzzle</li>
+                            <li><strong>Difficulty:</strong> Choose Easy (8-12 clues), Medium (6-8 clues), or Hard (4-6 clues)</li>
                             <li><strong>Hint:</strong> Reveals the correct number for selected cell</li>
                             <li><strong>Check:</strong> Validates your current progress</li>
                             <li><strong>Solve:</strong> Shows the complete solution</li>
@@ -137,7 +136,7 @@
                         <li>Reduces stress and promotes relaxation</li>
                     </ul>
                     
-                    <p class="version">Version 1.0 | Created with ❤️</p>
+                    <p class="version">Version 1.0 | Created by: Maneesh Thakur</p>
                 </div>
             </div>
         </div>

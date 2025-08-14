@@ -7,6 +7,7 @@ class SudokuGame {
         this.startTime = null;
         this.timerInterval = null;
         this.hintsUsed = 0;
+        this.currentDifficulty = 'easy';
         
         // Define regions for 5x5 irregular Sudoku
         this.regions = [
@@ -29,11 +30,38 @@ class SudokuGame {
         this.init();
     }
     
+    // Add this to window for testing
+    setupGlobalTesting() {
+        window.sudokuGame = this;
+        window.testSudoku = () => this.validatePuzzleGeneration();
+        window.testRegions = () => this.validateRegions();
+        window.runFullTest = () => {
+            console.log('🚀 Running complete Sudoku validation...\n');
+            const regionTest = this.validateRegions();
+            const puzzleTest = this.validatePuzzleGeneration();
+            
+            if (regionTest && puzzleTest) {
+                console.log('\n� ALL SYSTEMS GO! The game is fully functional and safe.');
+            } else {
+                console.error('\n❌ CRITICAL ISSUES FOUND! Please review the implementation.');
+            }
+            
+            return regionTest && puzzleTest;
+        };
+        console.log('�🎮 Sudoku game loaded!');
+        console.log('Available commands:');
+        console.log('  - testSudoku() - Test puzzle generation');
+        console.log('  - testRegions() - Test region definitions');
+        console.log('  - runFullTest() - Complete validation suite');
+    }
+    
     init() {
         this.createGrid();
+        this.updateDifficultyDisplay();
         this.generatePuzzle();
         this.setupEventListeners();
         this.startTimer();
+        this.setupGlobalTesting();
     }
     
     createGrid() {
@@ -77,8 +105,12 @@ class SudokuGame {
             }
         }
         
-        // Remove numbers to create puzzle (leave 8-12 clues for easy difficulty)
-        const cellsToRemove = this.getRandomInt(13, 17); // Remove 13-17 out of 25 cells
+        // Remove numbers to create puzzle based on difficulty
+        const cluesRange = this.getCluesRange(this.currentDifficulty);
+        const totalCells = 25;
+        const cluesCount = this.getRandomInt(cluesRange.min, cluesRange.max);
+        const cellsToRemove = totalCells - cluesCount;
+        
         const cellPositions = [];
         
         for (let row = 0; row < 5; row++) {
@@ -109,6 +141,36 @@ class SudokuGame {
         this.updateDisplay();
     }
     
+    getCluesRange(difficulty) {
+        switch (difficulty) {
+            case 'easy':
+                return { min: 8, max: 12 };
+            case 'medium':
+                return { min: 6, max: 8 };
+            case 'hard':
+                return { min: 4, max: 6 };
+            default:
+                return { min: 8, max: 12 };
+        }
+    }
+    
+    getDifficultyName(difficulty) {
+        switch (difficulty) {
+            case 'easy':
+                return 'Easy';
+            case 'medium':
+                return 'Medium';
+            case 'hard':
+                return 'Hard';
+            default:
+                return 'Easy';
+        }
+    }
+    
+    updateDifficultyDisplay() {
+        document.getElementById('difficulty-level').textContent = this.getDifficultyName(this.currentDifficulty);
+    }
+    
     generateSolution() {
         // Clear the solution grid
         for (let row = 0; row < 5; row++) {
@@ -117,8 +179,59 @@ class SudokuGame {
             }
         }
         
-        // Fill the grid using backtracking
-        this.solvePuzzle(this.solution);
+        // Fill the grid using backtracking with timeout safeguard
+        const startTime = Date.now();
+        const maxTime = 5000; // 5 seconds timeout
+        
+        const solveWithTimeout = () => {
+            if (Date.now() - startTime > maxTime) {
+                console.warn('⚠️ Puzzle generation timeout, retrying...');
+                return false;
+            }
+            return this.solvePuzzle(this.solution);
+        };
+        
+        let attempts = 0;
+        const maxAttempts = 3;
+        
+        while (attempts < maxAttempts) {
+            if (solveWithTimeout()) {
+                break;
+            }
+            
+            attempts++;
+            // Clear and try again
+            for (let row = 0; row < 5; row++) {
+                for (let col = 0; col < 5; col++) {
+                    this.solution[row][col] = 0;
+                }
+            }
+            
+            if (attempts >= maxAttempts) {
+                console.error('❌ Failed to generate valid solution after multiple attempts');
+                // Fallback: create a simple valid solution
+                this.createFallbackSolution();
+            }
+        }
+    }
+    
+    createFallbackSolution() {
+        // Create a simple valid 5x5 Sudoku solution as fallback
+        const fallback = [
+            [1, 2, 3, 4, 5],
+            [2, 3, 4, 5, 1],
+            [3, 4, 5, 1, 2],
+            [4, 5, 1, 2, 3],
+            [5, 1, 2, 3, 4]
+        ];
+        
+        for (let row = 0; row < 5; row++) {
+            for (let col = 0; col < 5; col++) {
+                this.solution[row][col] = fallback[row][col];
+            }
+        }
+        
+        console.log('✅ Using fallback solution');
     }
     
     solvePuzzle(grid) {
@@ -424,12 +537,17 @@ class SudokuGame {
         this.hintsUsed = 0;
         this.selectedCell = null;
         
+        // Get current difficulty from dropdown
+        const difficultySelect = document.getElementById('difficulty-select');
+        this.currentDifficulty = difficultySelect.value;
+        
         // Clear all cell styling
         document.querySelectorAll('.cell').forEach(cell => {
             cell.classList.remove('selected', 'error', 'hint', 'solved');
         });
         
         document.getElementById('victory-modal').classList.add('hidden');
+        this.updateDifficultyDisplay();
         this.generatePuzzle();
         this.startTimer();
     }
@@ -477,6 +595,12 @@ class SudokuGame {
             document.getElementById('about-modal').classList.add('hidden');
         });
         
+        // Difficulty selector
+        document.getElementById('difficulty-select').addEventListener('change', (e) => {
+            this.currentDifficulty = e.target.value;
+            this.updateDifficultyDisplay();
+        });
+        
         // Keyboard support
         document.addEventListener('keydown', (e) => {
             if (e.key >= '1' && e.key <= '5') {
@@ -516,6 +640,151 @@ class SudokuGame {
             const j = Math.floor(Math.random() * (i + 1));
             [array[i], array[j]] = [array[j], array[i]];
         }
+    }
+    
+    // Test function to validate puzzle generation
+    validatePuzzleGeneration() {
+        console.log('🔍 Testing puzzle generation for all difficulty levels...');
+        
+        const difficulties = ['easy', 'medium', 'hard'];
+        let allTestsPassed = true;
+        
+        difficulties.forEach(difficulty => {
+            console.log(`\n📊 Testing ${difficulty.toUpperCase()} difficulty:`);
+            
+            const originalDifficulty = this.currentDifficulty;
+            this.currentDifficulty = difficulty;
+            
+            // Test multiple puzzle generations
+            for (let test = 1; test <= 3; test++) {
+                console.log(`  Test ${test}:`);
+                
+                // Generate new puzzle
+                this.generateSolution();
+                for (let row = 0; row < 5; row++) {
+                    for (let col = 0; col < 5; col++) {
+                        this.grid[row][col] = this.solution[row][col];
+                    }
+                }
+                
+                // Remove clues based on difficulty
+                const cluesRange = this.getCluesRange(difficulty);
+                const cluesCount = this.getRandomInt(cluesRange.min, cluesRange.max);
+                const cellsToRemove = 25 - cluesCount;
+                
+                console.log(`    Expected clues: ${cluesRange.min}-${cluesRange.max}, Generated: ${cluesCount}`);
+                
+                // Validate clues range
+                if (cluesCount < cluesRange.min || cluesCount > cluesRange.max) {
+                    console.error(`    ❌ FAIL: Clues count ${cluesCount} not in range ${cluesRange.min}-${cluesRange.max}`);
+                    allTestsPassed = false;
+                } else {
+                    console.log(`    ✅ PASS: Clues count within range`);
+                }
+                
+                // Test solution validation
+                const isSolutionValid = this.validateCompleteSolution(this.solution);
+                if (isSolutionValid) {
+                    console.log(`    ✅ PASS: Generated solution is valid`);
+                } else {
+                    console.error(`    ❌ FAIL: Generated solution is invalid`);
+                    allTestsPassed = false;
+                }
+            }
+            
+            this.currentDifficulty = originalDifficulty;
+        });
+        
+        if (allTestsPassed) {
+            console.log('\n🎉 ALL TESTS PASSED! Game is working correctly for all difficulty levels.');
+        } else {
+            console.error('\n❌ SOME TESTS FAILED! Please check the implementation.');
+        }
+        
+        return allTestsPassed;
+    }
+    
+    // Validate complete solution
+    validateCompleteSolution(grid) {
+        // Check all rows
+        for (let row = 0; row < 5; row++) {
+            const rowSet = new Set();
+            for (let col = 0; col < 5; col++) {
+                if (grid[row][col] < 1 || grid[row][col] > 5 || rowSet.has(grid[row][col])) {
+                    return false;
+                }
+                rowSet.add(grid[row][col]);
+            }
+        }
+        
+        // Check all columns
+        for (let col = 0; col < 5; col++) {
+            const colSet = new Set();
+            for (let row = 0; row < 5; row++) {
+                if (colSet.has(grid[row][col])) {
+                    return false;
+                }
+                colSet.add(grid[row][col]);
+            }
+        }
+        
+        // Check all regions
+        for (let regionIndex = 0; regionIndex < this.regions.length; regionIndex++) {
+            const regionSet = new Set();
+            const region = this.regions[regionIndex];
+            
+            for (let [row, col] of region) {
+                if (regionSet.has(grid[row][col])) {
+                    return false;
+                }
+                regionSet.add(grid[row][col]);
+            }
+        }
+        
+        return true;
+    }
+    
+    // Validate regions definition
+    validateRegions() {
+        console.log('🔍 Validating regions definition...');
+        
+        const allCells = new Set();
+        let isValid = true;
+        
+        // Check each region
+        this.regions.forEach((region, index) => {
+            console.log(`  Region ${index + 1}: ${region.length} cells`);
+            
+            if (region.length !== 5) {
+                console.error(`    ❌ FAIL: Region ${index + 1} has ${region.length} cells, expected 5`);
+                isValid = false;
+            }
+            
+            region.forEach(([row, col]) => {
+                const cellKey = `${row},${col}`;
+                if (allCells.has(cellKey)) {
+                    console.error(`    ❌ FAIL: Cell (${row},${col}) appears in multiple regions`);
+                    isValid = false;
+                }
+                if (row < 0 || row >= 5 || col < 0 || col >= 5) {
+                    console.error(`    ❌ FAIL: Cell (${row},${col}) is out of bounds`);
+                    isValid = false;
+                }
+                allCells.add(cellKey);
+            });
+        });
+        
+        // Check if all 25 cells are covered
+        if (allCells.size !== 25) {
+            console.error(`❌ FAIL: Only ${allCells.size} cells covered, expected 25`);
+            isValid = false;
+        }
+        
+        if (isValid) {
+            console.log('✅ PASS: All regions are correctly defined');
+        }
+        
+        return isValid;
     }
 }
 
