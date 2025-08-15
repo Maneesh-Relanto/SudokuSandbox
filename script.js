@@ -35,6 +35,7 @@ class SudokuGame {
         window.sudokuGame = this;
         window.testSudoku = () => this.validatePuzzleGeneration();
         window.testRegions = () => this.validateRegions();
+        window.testDiagonals = () => this.testDiagonalConstraints();
         window.runFullTest = () => {
             console.log('🚀 Running complete Sudoku validation...\n');
             const regionTest = this.validateRegions();
@@ -785,6 +786,73 @@ class SudokuGame {
         }
         
         return isValid;
+    }
+    
+    // Test diagonal constraints (should NOT exist in standard Sudoku)
+    testDiagonalConstraints() {
+        console.log('🔍 Testing diagonal constraints (should be ALLOWED)...');
+        
+        // Create a test grid with same numbers on diagonals
+        const testGrid = [
+            [1, 2, 3, 4, 5],
+            [2, 1, 4, 5, 3],
+            [3, 4, 1, 2, 5],
+            [4, 5, 2, 1, 3],
+            [5, 3, 5, 3, 1]  // This has diagonal conflicts but should be allowed
+        ];
+        
+        let diagonalConflicts = 0;
+        
+        // Test main diagonal (0,0) to (4,4)
+        const mainDiagonal = [testGrid[0][0], testGrid[1][1], testGrid[2][2], testGrid[3][3], testGrid[4][4]];
+        console.log(`Main diagonal: [${mainDiagonal.join(', ')}]`);
+        
+        // Test anti-diagonal (0,4) to (4,0)  
+        const antiDiagonal = [testGrid[0][4], testGrid[1][3], testGrid[2][2], testGrid[3][1], testGrid[4][0]];
+        console.log(`Anti diagonal: [${antiDiagonal.join(', ')}]`);
+        
+        // Check if validation allows diagonal duplicates (it should!)
+        let testsPass = true;
+        
+        // Test placing same number on main diagonal
+        if (this.isValidMove(testGrid, 0, 0, 1) && this.isValidMove(testGrid, 2, 2, 1)) {
+            console.log('✅ PASS: Diagonal duplicates are correctly ALLOWED');
+        } else {
+            console.error('❌ FAIL: Diagonal duplicates are incorrectly BLOCKED');
+            testsPass = false;
+        }
+        
+        // Test a few specific diagonal placements
+        const diagonalTests = [
+            {pos: [0,0], num: 3, expected: 'allowed'},
+            {pos: [1,1], num: 3, expected: 'allowed'},
+            {pos: [2,2], num: 3, expected: 'allowed'}
+        ];
+        
+        diagonalTests.forEach((test, i) => {
+            const [row, col] = test.pos;
+            const tempGrid = JSON.parse(JSON.stringify(testGrid));
+            tempGrid[row][col] = 0; // Clear the cell first
+            
+            const isValid = this.isValidMove(tempGrid, row, col, test.num);
+            
+            if (test.expected === 'allowed' && isValid) {
+                console.log(`  Test ${i+1}: ✅ PASS - Number ${test.num} at (${row},${col}) correctly allowed`);
+            } else if (test.expected === 'blocked' && !isValid) {
+                console.log(`  Test ${i+1}: ✅ PASS - Number ${test.num} at (${row},${col}) correctly blocked`);
+            } else {
+                console.error(`  Test ${i+1}: ❌ FAIL - Number ${test.num} at (${row},${col}) validation incorrect`);
+                testsPass = false;
+            }
+        });
+        
+        if (testsPass) {
+            console.log('✅ PASS: Diagonal constraints working correctly (NO diagonal restrictions)');
+        } else {
+            console.error('❌ FAIL: Diagonal constraint issues detected');
+        }
+        
+        return testsPass;
     }
 }
 
